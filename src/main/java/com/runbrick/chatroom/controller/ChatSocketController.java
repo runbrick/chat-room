@@ -1,6 +1,8 @@
 package com.runbrick.chatroom.controller;
 
+import com.runbrick.chatroom.domain.UserDO;
 import com.runbrick.chatroom.util.DateUtil;
+import com.runbrick.chatroom.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -17,16 +19,17 @@ public class ChatSocketController {
 
 
     // 每个用户登录都要存入进去
-    private static Map<String, Session> onlineSessions = new ConcurrentHashMap<>();
+    private static Map<String, UserDO> onlineSessions = new ConcurrentHashMap<>();
 
     @OnOpen
     public void onOpen(Session toSession) {
-        onlineSessions.put(toSession.getId(), toSession);
+        UserDO userDO = new UserDO(StringUtil.randomString(5), toSession.getId(), toSession);
+        onlineSessions.put(toSession.getId(), userDO);
 
         onlineSessions.forEach((id, session) -> {
             try {
                 if (!id.equals(toSession.getId())) {
-                    session.getBasicRemote().sendText(String.format("[用户%s]加入了聊天室", toSession.getId()));
+                    session.getSession().getBasicRemote().sendText(String.format("[用户%s]加入了聊天室", session.getName()));
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -38,12 +41,12 @@ public class ChatSocketController {
 
     @OnClose
     public void onClose(Session toSession) {
+        UserDO userDO = onlineSessions.get(toSession.getId());
         onlineSessions.remove(toSession.getId());
-
         onlineSessions.forEach((id, session) -> {
             try {
                 if (!id.equals(toSession.getId())) {
-                    session.getBasicRemote().sendText(String.format("[用户%s]退出了聊天室", toSession.getId()));
+                    session.getSession().getBasicRemote().sendText(String.format("[用户%s]退出了聊天室", userDO.getName()));
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -74,7 +77,7 @@ public class ChatSocketController {
             onlineSessions.forEach((id, session) -> {
                 try {
                     if (!id.equals(toSession.getId())) {
-                        session.getBasicRemote().sendText(String.format("[用户%s]发送消息:%s", toSession.getId(), message));
+                        session.getSession().getBasicRemote().sendText(String.format("[用户%s]发送消息:%s", session.getName(), message));
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
