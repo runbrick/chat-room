@@ -1,4 +1,4 @@
-# 建议 spring boot websocket 聊天室
+# 简易 spring boot websocket 聊天室
 
 
 ## 技术栈
